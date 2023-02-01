@@ -1,0 +1,6 @@
+.idea
+**/.terraform
+*.json
+
+token.json
+*.json
