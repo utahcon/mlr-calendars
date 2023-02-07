@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"github.com/utahcon/mlr"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Retrieve a token, saves the token, then returns the generated client.
@@ -68,109 +72,122 @@ func saveToken(path string, token *oauth2.Token) {
 
 func main() {
 
+	ctx := context.Background()
+	b, err := os.ReadFile("mlr-calendar-app-creds.json")
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, calendar.CalendarScope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+
+	//Delete all calendars
+	//for calName, calendarId := range mlr.CalendarLink {
+	//	log.Println("Getting events on calendar:", calName, calendarId)
+	//	events, err := srv.Events.List(calendarId).TimeMin(time.Now().Format(time.RFC3339)).Do()
+	//	if err != nil {
+	//		log.Fatalf("Error getting event list for %s: %v", calendarId, err)
+	//	}
+	//
+	//	for _, event := range events.Items {
+	//		attempts := 0
+	//		for {
+	//			attempts++
+	//			log.Println("Deleting: ", calendarId, event.Id)
+	//			err := srv.Events.Delete(calendarId, event.Id).Do()
+	//			if err != nil {
+	//				log.Printf("Error deleting event (sleep: %d): %v", time.Second*10*time.Duration(attempts), err)
+	//				time.Sleep(time.Second * 10 * time.Duration(attempts))
+	//			} else {
+	//				break
+	//			}
+	//		}
+	//	}
+	//}
+
 	mlrSrv, err := mlr.NewService()
 	if err != nil {
 		log.Fatalf("Error getting MLR Client: %v", err)
 	}
 
-	matches, err := mlrSrv.Matches.List().TeamOne("").TeamTwo("").Count(10).Page(1).ExcludePlayers(true).Series("").Season("").Do()
-	if err != nil {
-		log.Fatalf("Error getting matches: %v", err)
-	}
-	for _, match := range matches.Matches {
-		fmt.Println(match.GUID)
-	}
-	//
-	//httpClient := &http.Client{}
-	//
-	//v := url.Values{}
-	//v.Set("searchTeamOneId", "")
-	//v.Set("searchTeamTwoId", "")
-	//v.Set("seriesId", "")
-	//v.Set("seasonId", "")
-	//v.Set("pageSize", "5")
-	//v.Set("pageNumber", "1")
-	//v.Set("excludePlayers", "true")
-	//
-	//req, err := http.NewRequest("GET", mlr.SearchMatches+"?"+v.Encode(), nil)
-	//
-	//req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0")
-	//req.Header.Add("Accept", "*/*")
-	//req.Header.Add("Accept-Language", "en-US,en;q=0.5")
-	//req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	//req.Header.Add("Referer", "https://www.majorleague.rugby/")
-	//req.Header.Add("Origin", "https://www.majorleague.rugby")
-	//req.Header.Add("DNT", "1")
-	//req.Header.Add("Connection", "keep-alive")
-	//req.Header.Add("Sec-Fetch-Dest", "empty")
-	//req.Header.Add("Sec-Fetch-Mode", "no-cors")
-	//req.Header.Add("Sec-Fetch-Site", "cross-site")
-	//req.Header.Add("Sec-GPC", "1")
-	//req.Header.Add("TE", "trailers")
-	//req.Header.Add("Content-Type", "application/json")
-	//req.Header.Add("stratus-media-headers", "true")
-	//req.Header.Add("EditOnBehalfOfUserGuid", "1EFF3C3F-1069-44FE-9B87-17F22B57597F")
-	//req.Header.Add("tenantId", "4CFEC22F-C6D7-4BDC-A568-B1071DBD0B6E")
-	//req.Header.Add("Pragma", "no-cache")
-	//req.Header.Add("Cache-Control", "no-cache")
-	//
-	//resp, err := httpClient.Do(req)
-	//if err != nil {
-	//	log.Fatalf("Error calling MLR LiveScores: %v", err)
-	//}
-	//
-	//fmt.Println("Response Headers:", resp.Header)
-	//fmt.Println("Response Status Code:", resp.StatusCode)
-	//fmt.Println("Response Status:", resp.Status)
-	//body, err := io.ReadAll(resp.Body)
-	//resp.Body.Close()
-	//fmt.Println("Response:", string(body))
-	//
-	//var matches []mlr.Match
-	//json.Unmarshal(body, &matches)
-	//
-	//for _, match := range matches {
-	//	fmt.Println("Match Id:", match.GUID)
-	//}
+	continuePolling := true
+	page := 0
+	for {
+		if !continuePolling {
+			break
+		}
+		page++
 
-	//ctx := context.Background()
-	//b, err := os.ReadFile("mlr-calendar-app-creds.json")
-	//if err != nil {
-	//	log.Fatalf("Unable to read client secret file: %v", err)
-	//}
-	//
-	//// If modifying these scopes, delete your previously saved token.json.
-	//config, err := google.ConfigFromJSON(b, calendar.CalendarReadonlyScope)
-	//if err != nil {
-	//	log.Fatalf("Unable to parse client secret file to config: %v", err)
-	//}
-	//client := getClient(config)
-	//
-	//srv, err := calendar.NewService(ctx, option.WithHTTPClient(client))
-	//if err != nil {
-	//	log.Fatalf("Unable to retrieve Calendar client: %v", err)
-	//}
-	//
-	//cals, err := srv.CalendarList.List().ShowDeleted(false).Do()
-	//for _, cal := range cals.Items {
-	//	fmt.Printf("%s: %s\n", cal.Id, cal.Summary)
-	//}
-	//
-	//t := time.Now().Format(time.RFC3339)
-	//events, err := srv.Events.List("primary").ShowDeleted(false).SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
-	//if err != nil {
-	//	log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
-	//}
-	//fmt.Println("Upcoming events:")
-	//if len(events.Items) == 0 {
-	//	fmt.Println("No upcoming events found.")
-	//} else {
-	//	for _, item := range events.Items {
-	//		date := item.Start.DateTime
-	//		if date == "" {
-	//			date = item.Start.Date
-	//		}
-	//		fmt.Printf("%v (%v)\n", item.Summary, date)
-	//	}
-	//}
+		log.Println("Polling Page: ", page)
+		matchList, err := mlrSrv.Matches.List().TeamOne("").TeamTwo("").Count(10).Page(page).ExcludePlayers(true).Series("").Season("").Do()
+		if err != nil {
+			log.Fatalf("Error getting matches: %v", err)
+		}
+
+		if len(matchList.Matches) == 0 {
+			continuePolling = false
+		}
+
+		for _, match := range matchList.Matches {
+
+			// Create events on Calendar
+			event := calendar.Event{
+				Start: &calendar.EventDateTime{
+					DateTime: match.Date.Format(time.RFC3339),
+				},
+				End: &calendar.EventDateTime{
+					DateTime: match.Date.Add(time.Hour * 2).Format(time.RFC3339),
+				},
+				Location:    match.Venue.Name,
+				Summary:     fmt.Sprintf("%s @ %s", match.AwayTeam.Name, match.HomeTeam.Name),
+				Description: fmt.Sprintf("%s take on %s at %s\n\nBroadcasters: (not implemented)", match.HomeTeam.Name, match.AwayTeam.Name, match.Venue.Name),
+				ExtendedProperties: &calendar.EventExtendedProperties{
+					Private: map[string]string{"GUID": match.GUID},
+				},
+			}
+
+			// Make sure Home Team is valid
+			if _, ok := mlr.CalendarLink[match.HomeTeamId]; ok {
+				event.Attendees = append(event.Attendees, &calendar.EventAttendee{
+					ResponseStatus: "accepted",
+					Email:          mlr.CalendarLink[match.HomeTeamId],
+				})
+			}
+
+			// Make sure Away Team if valid
+			if _, ok := mlr.CalendarLink[match.AwayTeamId]; ok {
+				event.Attendees = append(event.Attendees, &calendar.EventAttendee{
+					ResponseStatus: "accepted",
+					Email:          mlr.CalendarLink[match.AwayTeamId],
+				})
+			}
+
+			//MLR Main Calendar
+			events, err := srv.Events.List(mlr.CalendarLink["MajorLeagueRugby"]).PrivateExtendedProperty(fmt.Sprintf("GUID=%s", match.GUID)).Do()
+			if err != nil {
+				log.Fatalf("Error getting list of matching events: %v", err)
+			}
+
+			if len(events.Items) >= 1 && events.Items[0].ExtendedProperties.Private["GUID"] == match.GUID {
+				_, err := srv.Events.Update(mlr.CalendarLink["MajorLeagueRugby"], events.Items[0].Id, &event).Do()
+				if err != nil {
+					log.Fatalf("Error updating event %s: %v", events.Items[0].Id, err)
+				}
+			} else {
+				_, err := srv.Events.Insert(mlr.CalendarLink["MajorLeagueRugby"], &event).Do()
+				if err != nil {
+					log.Fatalf("Error inserting event: %v", err)
+				}
+			}
+		}
+	}
 }

@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/utahcon/mlr v0.0.0-00010101000000-000000000000
 	golang.org/x/oauth2 v0.4.0
+	google.golang.org/api v0.109.0
 )
 
 require (
@@ -19,7 +20,6 @@ require (
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
-	google.golang.org/api v0.109.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
 	google.golang.org/grpc v1.51.0 // indirect
