@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -72,6 +73,8 @@ func saveToken(path string, token *oauth2.Token) {
 
 func main() {
 
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	ctx := context.Background()
 	b, err := os.ReadFile("mlr-calendar-app-creds.json")
 	if err != nil {
@@ -121,6 +124,7 @@ func main() {
 
 	continuePolling := true
 	page := 0
+
 	for {
 		if !continuePolling {
 			break
@@ -130,7 +134,7 @@ func main() {
 		log.Println("Polling Page: ", page)
 		matchList, err := mlrSrv.Matches.List().TeamOne("").TeamTwo("").Count(10).Page(page).ExcludePlayers(true).Series("").Season("").Do()
 		if err != nil {
-			log.Fatalf("Error getting matches: %v", err)
+			log.Fatalf("Error getting matches: %#v", err)
 		}
 
 		if len(matchList.Matches) == 0 {
@@ -138,6 +142,15 @@ func main() {
 		}
 
 		for _, match := range matchList.Matches {
+
+			var bcs []string
+			for _, bc := range match.Broadcasters {
+				if link := bc.MatchLink(match); link != "" {
+					bcs = append(bcs, fmt.Sprintf(" <a href=\"%s\">%s</a>", link, bc.Name))
+				} else {
+					bcs = append(bcs, bc.Name)
+				}
+			}
 
 			// Create events on Calendar
 			event := calendar.Event{
@@ -149,7 +162,7 @@ func main() {
 				},
 				Location:    match.Venue.Name,
 				Summary:     fmt.Sprintf("%s @ %s", match.AwayTeam.Name, match.HomeTeam.Name),
-				Description: fmt.Sprintf("%s take on %s at %s\n\nBroadcasters: (not implemented)", match.HomeTeam.Name, match.AwayTeam.Name, match.Venue.Name),
+				Description: fmt.Sprintf("%s take on %s at %s\n\nBroadcasters: %s", match.HomeTeam.Name, match.AwayTeam.Name, match.Venue.Name, strings.Join(bcs, ", ")),
 				ExtendedProperties: &calendar.EventExtendedProperties{
 					Private: map[string]string{"GUID": match.GUID},
 				},
